@@ -21,6 +21,7 @@ func packData(cmd uint32, data string) []byte {
 
 func unPackData(data []byte) (cmd uint32, rdata string) {
 	cmd = binary.BigEndian.Uint32(data)
+	// binary.BigEndian.Uint32(b)
 	rdata = string(data[4:])
 	return
 }
