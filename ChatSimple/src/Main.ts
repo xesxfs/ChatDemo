@@ -238,13 +238,25 @@ class Main extends eui.UILayer {
         change();
     }
 
+    public  LoginHall={
+        msg:"Hello Lucy!!"
+
+    }
+
     /**
      * 点击按钮
      * Click the button
      */
     private sendDataEdt:eui.EditableText;
     private onButtonClick(e: egret.TouchEvent) {
-        this.send(this.sendDataEdt.text)
+
+        var b: egret.ByteArray = new egret.ByteArray();
+        b.endian = egret.Endian.LITTLE_ENDIAN;
+        b.writeInt(1)
+        b.writeUTF(JSON.stringify(this.LoginHall))
+
+
+        this.send(b)
         // let panel = new eui.Panel();
         // panel.title = "Title";
         // panel.horizontalCenter = 0;
@@ -280,6 +292,12 @@ class Main extends eui.UILayer {
         var b: egret.ByteArray = new egret.ByteArray();
         b.endian = egret.Endian.LITTLE_ENDIAN;
         this.socket.readBytes(b);        
+        // var echo=this.socket.readUTF();
+        var cmd=b.readInt()
+        var data=b.readUTF();
+        console.log(cmd,data)
+        // console.log(echo);
+        // this.socket.close();
     }
 
        //连接成功
@@ -288,7 +306,7 @@ class Main extends eui.UILayer {
     }
 
     private send(data){
-        this.socket.writeUTF(data);
+        this.socket.writeBytes(data);
         this.socket.flush();
 
     }
