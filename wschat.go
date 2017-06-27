@@ -18,6 +18,7 @@ func init() {
 		rooms:   make(map[uint64]*Room),
 		genUID:  NewGenerateUID(),
 		genRID:  NewGenerateRID(),
+		parse:   &Parse{},
 	}
 
 }
@@ -47,7 +48,7 @@ type Mux struct {
 }
 
 func (this *Mux) OnMessage(client *Client, data []byte) {
-	fmt.Printf("OnMessage %v\n", string(data))
+	// fmt.Printf("OnMessage %v\n", string(data))
 	rm.DealMsg(client, data)
 
 }
@@ -58,10 +59,34 @@ type RoomManager struct {
 	genUID  *GenerateUID       `用户ID生成器`
 	genRID  *GenerateRID       `房间ID生成器`
 	sync.Mutex
+	parse Processer
+}
+
+type LoginHall struct {
+	Msg string
 }
 
 func (this *RoomManager) DealMsg(client *Client, data []byte) {
-	fmt.Printf("DealMsg %v\n", string(data))
+	cmd, jsonData := this.parse.Unmarshal(data)
+	fmt.Printf("DealMsg cmd:%d data:%s\n", cmd, jsonData)
+	var ln LoginHall
+	// b := []byte(`{"msg":"Hello Lucy!!"}`)
+	if err := json.Unmarshal([]byte(jsonData), &ln); err != nil {
+		fmt.Println("Unmarshal err%v", err)
+
+	}
+	fmt.Printf("Login Hall %v\n", ln)
+
+	// switch cmd {
+	// case 1:
+	// 	this.AddUser(client)
+	// case 2:
+	// 	this.CreateRoom(client)
+	// 	// case 3:
+	// 	// 	this.JoinRoom(client, rid)
+	// 	// default:
+
+	// }
 
 }
 
@@ -76,8 +101,10 @@ GenUID:
 	this.clients[uid] = client
 	client.user = User{
 		Id:   uid,
-		Name: "test" + string(uid),
+		Name: fmt.Sprintf("test%d", uid),
 	}
+
+	fmt.Println("add user:", client.user.Name)
 
 }
 
@@ -166,6 +193,13 @@ func (this *Room) JoinUser(userId uint64) bool {
 	return false
 }
 
+func (this *Room) RoomLogic(uid uint64, cmd uint32, jsonData string) {
+	switch cmd {
+
+	}
+
+}
+
 func (this *Room) ExitUser(userId uint64) bool {
 	defer this.Unlock()
 	this.Lock()
@@ -245,7 +279,7 @@ func NewWSConn(conn *websocket.Conn) *WSConn {
 				break
 			}
 
-			err := wscon.conn.WriteMessage(websocket.TextMessage, b)
+			err := wscon.conn.WriteMessage(websocket.BinaryMessage, b)
 
 			if err != nil {
 				break
@@ -279,7 +313,6 @@ func (this *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Printf("%v\n", conn.LocalAddr())
-
 	wsconn := NewWSConn(conn)
 	client := NewClient(wsconn)
 	this.Lock()
@@ -293,9 +326,8 @@ func (this *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		// fmt.Println(conn)
-		// wsconn.Send(data)
+		wsconn.Send(data)
 		this.msg.OnMessage(client, data)
-
 	}
 
 	this.Lock()
@@ -357,21 +389,22 @@ func NewGenerateRID() *GenerateRID {
 
 type Processer interface {
 	Unmarshal(data []byte) (cmd uint32, json string)
-	Marshal(cmd uint32, data interface{}) []byte
+	Marshal(cmd uint32, data interface{}) ([]byte, error)
 }
 type Parse struct {
 }
 
 func (this *Parse) Unmarshal(data []byte) (cmd uint32, json string) {
-	cmd = binary.BigEndian.Uint32(data)
-	json = string(data[4:])
+	cmd = binary.LittleEndian.Uint32(data)
+	json = string(data[6:])
+	fmt.Println(json)
 	return
 }
 
 func (this *Parse) Marshal(cmd uint32, data interface{}) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	jsonData, err := json.Marshal(data)
-	err = binary.Write(buf, binary.BigEndian, cmd)
-	err = binary.Write(buf, binary.BigEndian, jsonData)
+	err = binary.Write(buf, binary.LittleEndian, cmd)
+	err = binary.Write(buf, binary.LittleEndian, jsonData)
 	return buf.Bytes(), err
 }
