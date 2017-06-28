@@ -196,7 +196,8 @@ class Main extends eui.UILayer {
         button.verticalCenter = 0;
         this.addChild(button);
         button.addEventListener(egret.TouchEvent.TOUCH_TAP, this.onButtonClick, this);
-        this.createSocket();
+        // this.createSocket();
+        this.addChild(new MainUI());
     }
     /**
      * 根据name关键字创建一个Bitmap对象。name属性请参考resources/resource.json配置文件的内容。
@@ -238,10 +239,7 @@ class Main extends eui.UILayer {
         change();
     }
 
-    public  LoginHall={
-        msg:"Hello Lucy!!"
 
-    }
 
     /**
      * 点击按钮
@@ -250,13 +248,7 @@ class Main extends eui.UILayer {
     private sendDataEdt:eui.EditableText;
     private onButtonClick(e: egret.TouchEvent) {
 
-        var b: egret.ByteArray = new egret.ByteArray();
-        b.endian = egret.Endian.LITTLE_ENDIAN;
-        b.writeInt(1)
-        b.writeUTF(JSON.stringify(this.LoginHall))
 
-
-        this.send(b)
         // let panel = new eui.Panel();
         // panel.title = "Title";
         // panel.horizontalCenter = 0;
@@ -265,49 +257,5 @@ class Main extends eui.UILayer {
     }
 
 
-    private socket:egret.WebSocket;
 
-    private createSocket(){
-
-        this.socket = new egret.WebSocket();
-        this.socket.type = egret.WebSocket.TYPE_BINARY;
-        this.socket.addEventListener(egret.Event.CONNECT, this.onConnect, this);         
-        this.socket.addEventListener(egret.Event.CLOSE,this.onClose,this);
-        this.socket.addEventListener(egret.IOErrorEvent.IO_ERROR,this.onError,this);
-        this.socket.addEventListener(egret.ProgressEvent.SOCKET_DATA,this.onRecieve,this);
-        this.socket.connectByUrl("ws://127.0.0.1:8080");
-    }
-
-    private onClose(e:egret.Event):void {
-        console.log("close")
-    }
-
-    //连接错误
-    private onError(e:egret.IOErrorEvent):void {
-
-    }
-        //接收数据
-    private onRecieve(e: egret.ProgressEvent): void {
-        // console.log("--------------------------------------")
-        var b: egret.ByteArray = new egret.ByteArray();
-        b.endian = egret.Endian.LITTLE_ENDIAN;
-        this.socket.readBytes(b);        
-        // var echo=this.socket.readUTF();
-        var cmd=b.readInt()
-        var data=b.readUTF();
-        console.log(cmd,data)
-        // console.log(echo);
-        // this.socket.close();
-    }
-
-       //连接成功
-    private onConnect(e:egret.Event):void {
-        egret.log(this.name+ " connect success");
-    }
-
-    private send(data){
-        this.socket.writeBytes(data);
-        this.socket.flush();
-
-    }
 }

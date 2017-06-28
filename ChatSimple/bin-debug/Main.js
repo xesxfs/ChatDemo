@@ -191,7 +191,8 @@ var Main = (function (_super) {
         button.verticalCenter = 0;
         this.addChild(button);
         button.addEventListener(egret.TouchEvent.TOUCH_TAP, this.onButtonClick, this);
-        this.createSocket();
+        // this.createSocket();
+        this.addChild(new MainUI());
     };
     /**
      * 根据name关键字创建一个Bitmap对象。name属性请参考resources/resource.json配置文件的内容。
@@ -231,42 +232,11 @@ var Main = (function (_super) {
         change();
     };
     Main.prototype.onButtonClick = function (e) {
-        this.send(this.sendDataEdt.text);
         // let panel = new eui.Panel();
         // panel.title = "Title";
         // panel.horizontalCenter = 0;
         // panel.verticalCenter = 0;
         // this.addChild(panel);
-    };
-    Main.prototype.createSocket = function () {
-        this.socket = new egret.WebSocket();
-        this.socket.type = egret.WebSocket.TYPE_BINARY;
-        this.socket.addEventListener(egret.Event.CONNECT, this.onConnect, this);
-        this.socket.addEventListener(egret.Event.CLOSE, this.onClose, this);
-        this.socket.addEventListener(egret.IOErrorEvent.IO_ERROR, this.onError, this);
-        this.socket.addEventListener(egret.ProgressEvent.SOCKET_DATA, this.onRecieve, this);
-        this.socket.connectByUrl("ws://127.0.0.1:8080");
-    };
-    Main.prototype.onClose = function (e) {
-        console.log("close");
-    };
-    //连接错误
-    Main.prototype.onError = function (e) {
-    };
-    //接收数据
-    Main.prototype.onRecieve = function (e) {
-        // console.log("--------------------------------------")
-        var b = new egret.ByteArray();
-        b.endian = egret.Endian.LITTLE_ENDIAN;
-        this.socket.readBytes(b);
-    };
-    //连接成功
-    Main.prototype.onConnect = function (e) {
-        egret.log(this.name + " connect success");
-    };
-    Main.prototype.send = function (data) {
-        this.socket.writeUTF(data);
-        this.socket.flush();
     };
     return Main;
 }(eui.UILayer));

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bytes"
+	_ "bytes"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -62,31 +62,80 @@ type RoomManager struct {
 	parse Processer
 }
 
+type CMD int
+
+const (
+	Login CMD = 1 + iota
+	Croom
+	JHall
+)
+
 type LoginHall struct {
 	Msg string
 }
 
+type RevJRoom struct {
+	RId uint64
+}
+
+type SendCRoomProto struct {
+	Code   int
+	RoomNo uint64
+	Desc   string
+}
+
 func (this *RoomManager) DealMsg(client *Client, data []byte) {
+
 	cmd, jsonData := this.parse.Unmarshal(data)
 	fmt.Printf("DealMsg cmd:%d data:%s\n", cmd, jsonData)
-	var ln LoginHall
-	// b := []byte(`{"msg":"Hello Lucy!!"}`)
-	if err := json.Unmarshal([]byte(jsonData), &ln); err != nil {
-		fmt.Println("Unmarshal err%v", err)
+
+	switch cmd {
+	case 1:
+		var ln LoginHall
+		if err := json.Unmarshal([]byte(jsonData), &ln); err != nil {
+			fmt.Println("Unmarshal err%v", err)
+
+		}
+		// fmt.Printf("Login Hall %v\n", ln)
+		this.AddUser(client)
+		user := client.user
+		lData, err := this.parse.Marshal(cmd, user)
+		if err != nil {
+			return
+		}
+		this.SendClientData(user.Id, lData)
+	case 2:
+		// var revCroom RevCRoomProto
+		var code int
+		var rid uint64
+		var desc string
+		if client.user.Id > 0 {
+			rid = client.user.Id
+			this.JoinRoom(client, rid)
+		} else {
+			rid = this.CreateRoom(client)
+		}
+
+		fmt.Println(rid)
+		sendRoomProto := &SendCRoomProto{
+			Code:   code,
+			RoomNo: rid,
+			Desc:   desc,
+		}
+		sdata, _ := this.parse.Marshal(cmd, sendRoomProto)
+		this.SendClientData(client.user.Id, sdata)
+	case 3:
+		var jroom RevJRoom
+		if err := json.Unmarshal([]byte(jsonData), &jroom); err != nil {
+			fmt.Println("Unmarshal err ", err)
+			return
+		}
+		this.JoinRoom(client, jroom.RId)
+		sdata, _ := this.parse.Marshal(cmd, &jroom)
+		this.BroadcastRoom(jroom.RId, sdata)
+		// default:
 
 	}
-	fmt.Printf("Login Hall %v\n", ln)
-
-	// switch cmd {
-	// case 1:
-	// 	this.AddUser(client)
-	// case 2:
-	// 	this.CreateRoom(client)
-	// 	// case 3:
-	// 	// 	this.JoinRoom(client, rid)
-	// 	// default:
-
-	// }
 
 }
 
@@ -104,7 +153,7 @@ GenUID:
 		Name: fmt.Sprintf("test%d", uid),
 	}
 
-	fmt.Println("add user:", client.user.Name)
+	// fmt.Println("add user:", client.user.Name)
 
 }
 
@@ -157,7 +206,10 @@ func (this *RoomManager) SendClientData(uid uint64, data []byte) {
 func (this *RoomManager) BroadcastRoom(rid uint64, data []byte) {
 	if room, ok := this.rooms[rid]; ok {
 		for _, uid := range room.users {
-			this.SendClientData(uid, data)
+			if uid > 0 {
+				this.SendClientData(uid, data)
+			}
+
 		}
 
 	}
@@ -326,7 +378,7 @@ func (this *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		// fmt.Println(conn)
-		wsconn.Send(data)
+		// wsconn.Send(data)
 		this.msg.OnMessage(client, data)
 	}
 
@@ -396,15 +448,18 @@ type Parse struct {
 
 func (this *Parse) Unmarshal(data []byte) (cmd uint32, json string) {
 	cmd = binary.LittleEndian.Uint32(data)
-	json = string(data[6:])
+	json = string(data[4:])
 	fmt.Println(json)
 	return
 }
 
 func (this *Parse) Marshal(cmd uint32, data interface{}) ([]byte, error) {
-	buf := new(bytes.Buffer)
+
 	jsonData, err := json.Marshal(data)
-	err = binary.Write(buf, binary.LittleEndian, cmd)
-	err = binary.Write(buf, binary.LittleEndian, jsonData)
-	return buf.Bytes(), err
+	dataByte := []byte(jsonData)
+	cmdByte := make([]byte, len(dataByte)+4)
+	binary.BigEndian.PutUint32(cmdByte, cmd)
+	copy(cmdByte[4:], dataByte)
+
+	return cmdByte, err
 }
