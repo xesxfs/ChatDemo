@@ -78,6 +78,14 @@ type RevJRoom struct {
 	RId uint64
 }
 
+type RevSay struct {
+	Msg string
+}
+type SendSay struct {
+	Uid uint64
+	Msg string
+}
+
 type SendCRoomProto struct {
 	Code   int
 	RoomNo uint64
@@ -110,13 +118,14 @@ func (this *RoomManager) DealMsg(client *Client, data []byte) {
 		var rid uint64
 		var desc string
 		if client.user.Id > 0 {
-			rid = client.user.Id
-			this.JoinRoom(client, rid)
-		} else {
 			rid = this.CreateRoom(client)
+		} else {
+			// rid = client.user.Id
+			// this.JoinRoom(client, rid)
+			client.conn.conn.Close()
+			return
 		}
 
-		fmt.Println(rid)
 		sendRoomProto := &SendCRoomProto{
 			Code:   code,
 			RoomNo: rid,
@@ -132,9 +141,20 @@ func (this *RoomManager) DealMsg(client *Client, data []byte) {
 		}
 		this.JoinRoom(client, jroom.RId)
 		sdata, _ := this.parse.Marshal(cmd, &jroom)
-		this.BroadcastRoom(jroom.RId, sdata)
-		// default:
+		this.SendClientData(client.user.Id, sdata)
+		sdata, _ = this.parse.Marshal(4, client.user)
+		this.BroadcastRoomExMe(jroom.RId, client.user.Id, sdata)
+	// case 4:
+	case 5:
+		var say RevSay
+		if err := json.Unmarshal([]byte(jsonData), &say); err != nil {
+			fmt.Println("Unmarshal err%v", err)
+			return
+		}
+		sdata, _ := this.parse.Marshal(cmd, &say)
+		this.BroadcastRoom(client.user.roomNo, sdata)
 
+		// default:
 	}
 
 }
@@ -160,15 +180,17 @@ GenUID:
 func (this *RoomManager) CreateRoom(client *Client) uint64 {
 	defer this.Unlock()
 	this.Lock()
-	if client.user.roomNo > 0 {
-		return client.user.roomNo
-	}
+	// if client.user.roomNo > 0 {
+	// 	return client.user.roomNo
+	// }
 GenRID:
+	fmt.Println("CreateRoom")
 	rid := this.genRID.Generate()
 	if _, ok := this.rooms[rid]; ok {
 		goto GenRID
 	}
 	room := NewRoom(this, rid)
+	fmt.Println(room)
 
 	this.rooms[rid] = room
 	client.user.roomNo = rid
@@ -184,9 +206,7 @@ func (this *RoomManager) JoinRoom(client *Client, rid uint64) bool {
 	if room, ok := this.rooms[rid]; ok {
 		client.user.roomNo = rid
 		room.JoinUser(client.user.Id)
-
 		return true
-
 	}
 	return false
 
@@ -204,9 +224,23 @@ func (this *RoomManager) SendClientData(uid uint64, data []byte) {
 }
 
 func (this *RoomManager) BroadcastRoom(rid uint64, data []byte) {
+	fmt.Println(this.rooms)
 	if room, ok := this.rooms[rid]; ok {
 		for _, uid := range room.users {
 			if uid > 0 {
+				this.SendClientData(uid, data)
+			}
+
+		}
+
+	}
+
+}
+
+func (this *RoomManager) BroadcastRoomExMe(rid uint64, mid uint64, data []byte) {
+	if room, ok := this.rooms[rid]; ok {
+		for _, uid := range room.users {
+			if uid > 0 && uid != mid {
 				this.SendClientData(uid, data)
 			}
 

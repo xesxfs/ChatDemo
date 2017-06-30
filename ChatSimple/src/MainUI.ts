@@ -9,7 +9,9 @@ class MainUI extends eui.Component{
     private croomBtn:eui.Button;
     private joinBtn:eui.Button;
     private rinfoBtn:eui.Button;
-    private roomEdit:eui.EditableText;
+    private sayBtn:eui.Button;
+    private roomEdit:eui.EditableText;  
+    private sayEdit:eui.EditableText;
 
     protected childrenCreated(){
         this.createSocket();        
@@ -22,6 +24,10 @@ class MainUI extends eui.Component{
 
     public Croom={
         rid:0
+    }
+
+    public Say={
+        msg:""
     }
 
 
@@ -43,7 +49,7 @@ class MainUI extends eui.Component{
                     // b.writeUTFBytes(JSON.stringify(this.LoginHall));
                     this.send(b)
                 break;
-            case this.joinBtn:
+            case this.joinBtn:                   
                     var b: egret.ByteArray = new egret.ByteArray();
                     b.endian = egret.Endian.LITTLE_ENDIAN;
                     b.writeUnsignedInt(3)
@@ -54,12 +60,23 @@ class MainUI extends eui.Component{
                 break;
             case this.rinfoBtn:
                 break;
+            case this.sayBtn:
+                    var b: egret.ByteArray = new egret.ByteArray();
+                    b.endian = egret.Endian.LITTLE_ENDIAN;
+                    b.writeUnsignedInt(5)
+                    this.Say.msg=this.sayEdit.text
+                    b.writeUTFBytes(JSON.stringify(this.Say));
+                    this.send(b)
+                break;
         }
 
     }
 
-        private socket:egret.WebSocket;
 
+
+
+
+    private socket:egret.WebSocket;
     private createSocket(){
 
         this.socket = new egret.WebSocket();

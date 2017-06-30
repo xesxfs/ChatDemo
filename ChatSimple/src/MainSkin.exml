@@ -4,5 +4,8 @@
 	<e:Button id="croomBtn" label="Create" x="253" y="376"/>
 	<e:Button id="joinBtn" label="Join" x="404" y="376"/>
 	<e:EditableText id="roomEdit" width="132" text="1" x="388" y="320" multiline="false" anchorOffsetX="0" textAlign="center"/>
-	<e:Button id="rinfoBtn" label="RInfo" x="236" y="504"/>
+	<e:Button id="rinfoBtn" label="RInfo" x="101" y="491"/>
+	<e:Button id="sayBtn" label="Say" x="253" y="491"/>
+	<e:Button label="Button" x="404" y="491"/>
+	<e:EditableText id="sayEdit" width="129" height="100" text="Label" x="170" y="214" anchorOffsetX="0"/>
 </e:Skin>

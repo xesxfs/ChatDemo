@@ -17,6 +17,9 @@ var MainUI = (function (_super) {
         _this.Croom = {
             rid: 0
         };
+        _this.Say = {
+            msg: ""
+        };
         _this.skinName = "MainSkin";
         return _this;
     }
@@ -49,6 +52,14 @@ var MainUI = (function (_super) {
                 this.send(b);
                 break;
             case this.rinfoBtn:
+                break;
+            case this.sayBtn:
+                var b = new egret.ByteArray();
+                b.endian = egret.Endian.LITTLE_ENDIAN;
+                b.writeUnsignedInt(5);
+                this.Say.msg = this.sayEdit.text;
+                b.writeUTFBytes(JSON.stringify(this.Say));
+                this.send(b);
                 break;
         }
     };
